@@ -15,6 +15,28 @@ DB_HOST = os.getenv("POSTGRES_HOST", "localhost")
 DB_PORT = os.getenv("POSTGRES_PORT", "5432")
 
 DATASET_ID = "dplace-dataset-ea"
+DATASET_CODE = "EA"
+
+# Variables specified in the guide.
+SELECTED_VARIABLES = [
+    "EA043",  # Descent type
+    "EA027",  # Cousin terms
+    "EA023",  # Cousin marriage
+    "EA009",  # Monogamy or polygamy
+    "EA012",  # Where couples live
+    "EA006",  # Marriage payments
+    "EA042",  # Main activity
+    "EA028",  # Farming intensity
+    "EA029",  # Main crop
+    "EA033",  # Levels of authority
+    "EA066",  # Class divisions
+    "EA070",  # Slavery
+    "EA030",  # Settlement pattern
+    "EA031",  # Community size
+    "EA034",  # High gods
+]
+
+FIRST_VARIABLE = "EA043"
 
 
 def connect():
@@ -28,6 +50,8 @@ def connect():
 
 
 def write_json(path, data):
+    path.parent.mkdir(parents=True, exist_ok=True)
+
     with path.open("w", encoding="utf-8") as f:
         json.dump(
             data,
@@ -38,91 +62,154 @@ def write_json(path, data):
 
 
 def export_societies(conn):
+    societies = {}
+
     with conn.cursor() as cur:
         cur.execute(
             """
             SELECT
-                id,
+                s.id,
+                s.name,
+                s.latitude,
+                s.longitude,
+                s.region,
+                s.year,
+                v.id,
+                v.name,
+                c.name,
+                val.value
+            FROM societies s
+            LEFT JOIN "values" val
+                ON val.society_id = s.id
+                AND val.variable_id = ANY(%s)
+            LEFT JOIN variables v
+                ON v.id = val.variable_id
+            LEFT JOIN codes c
+                ON c.id = val.code_id
+            WHERE s.dataset_id = %s
+            ORDER BY s.id, v.id
+            """,
+            (SELECTED_VARIABLES, DATASET_ID),
+        )
+
+        for row in cur:
+            (
+                society_id,
                 name,
                 latitude,
                 longitude,
-                glottocode,
+                region,
                 year,
-                region
-            FROM societies
-            WHERE dataset_id = %s
-            ORDER BY id
-            """,
-            (DATASET_ID,),
-        )
+                variable_id,
+                variable_name,
+                code_name,
+                value,
+            ) = row
 
-        rows = cur.fetchall()
+            if society_id not in societies:
+                societies[society_id] = {
+                    "id": society_id,
+                    "name": name,
+                    "lat": latitude,
+                    "lon": longitude,
+                    "region": region,
+                    "year": year,
+                    "dataset": DATASET_CODE,
+                    "answers": {},
+                }
 
-    societies = []
+            if variable_id is not None:
+                answer = code_name if code_name is not None else value
 
-    for row in rows:
-        societies.append(
-            {
-                "id": row[0],
-                "name": row[1],
-                "latitude": row[2],
-                "longitude": row[3],
-                "glottocode": row[4],
-                "year": row[5],
-                "region": row[6],
-            }
-        )
+                societies[society_id]["answers"][variable_name] = answer
 
-    output_file = OUTPUT_DIR / "societies.json"
-    write_json(output_file, societies)
+    output = list(societies.values())
 
-    print(
-        f"Exported {len(societies)} societies → "
-        f"{output_file}"
-    )
+    path = OUTPUT_DIR / "societies.json"
+    write_json(path, output)
+
+    print(f"Exported {len(output)} societies → {path}")
 
 
 def export_variables(conn):
+    variables = []
+
     with conn.cursor() as cur:
         cur.execute(
             """
             SELECT
-                id,
+                v.id,
+                v.name,
+                v.description,
+                v.category,
+                v.type,
+                v.unit
+            FROM variables v
+            WHERE v.dataset_id = %s
+              AND v.id = ANY(%s)
+            ORDER BY array_position(%s, v.id)
+            """,
+            (
+                DATASET_ID,
+                SELECTED_VARIABLES,
+                SELECTED_VARIABLES,
+            ),
+        )
+
+        variable_rows = cur.fetchall()
+
+        for row in variable_rows:
+            (
+                variable_id,
                 name,
                 description,
                 category,
-                type,
-                unit
-            FROM variables
-            WHERE dataset_id = %s
-            ORDER BY id
-            """,
-            (DATASET_ID,),
-        )
+                variable_type,
+                unit,
+            ) = row
 
-        rows = cur.fetchall()
+            cur.execute(
+                """
+                SELECT
+                    c.id,
+                    c.name,
+                    c.description,
+                    c.ord
+                FROM codes c
+                WHERE c.variable_id = %s
+                ORDER BY c.ord, c.id
+                """,
+                (variable_id,),
+            )
 
-    variables = []
+            answers = []
 
-    for row in rows:
-        variables.append(
-            {
-                "id": row[0],
-                "name": row[1],
-                "description": row[2],
-                "category": row[3],
-                "type": row[4],
-                "unit": row[5],
-            }
-        )
+            for code_id, code_name, code_description, ord_value in cur.fetchall():
+                answers.append(
+                    {
+                        "id": code_id,
+                        "name": code_name,
+                        "description": code_description,
+                        "ord": ord_value,
+                    }
+                )
 
-    output_file = OUTPUT_DIR / "variables.json"
-    write_json(output_file, variables)
+            variables.append(
+                {
+                    "id": variable_id,
+                    "name": name,
+                    "description": description,
+                    "category": category,
+                    "type": variable_type,
+                    "unit": unit,
+                    "answers": answers,
+                }
+            )
 
-    print(
-        f"Exported {len(variables)} variables → "
-        f"{output_file}"
-    )
+    path = OUTPUT_DIR / "variables.json"
+    write_json(path, variables)
+
+    print(f"Exported {len(variables)} variables → {path}")
 
 
 def export_meta(conn):
@@ -142,43 +229,56 @@ def export_meta(conn):
             SELECT COUNT(*)
             FROM variables
             WHERE dataset_id = %s
+              AND id = ANY(%s)
             """,
-            (DATASET_ID,),
+            (DATASET_ID, SELECTED_VARIABLES),
         )
         variable_count = cur.fetchone()[0]
 
         cur.execute(
             """
             SELECT COUNT(*)
-            FROM "values" v
+            FROM "values" val
             JOIN societies s
-                ON s.id = v.society_id
-            JOIN variables var
-                ON var.id = v.variable_id
+                ON s.id = val.society_id
             WHERE s.dataset_id = %s
-              AND var.dataset_id = %s
+              AND val.variable_id = ANY(%s)
             """,
-            (DATASET_ID, DATASET_ID),
+            (DATASET_ID, SELECTED_VARIABLES),
         )
         value_count = cur.fetchone()[0]
 
+        cur.execute(
+            """
+            SELECT DISTINCT region
+            FROM societies
+            WHERE dataset_id = %s
+              AND region IS NOT NULL
+              AND region <> ''
+            ORDER BY region
+            """,
+            (DATASET_ID,),
+        )
+        regions = [row[0] for row in cur.fetchall()]
+
     meta = {
+        "dataset": DATASET_CODE,
         "dataset_id": DATASET_ID,
         "dataset_name": "Ethnographic Atlas",
         "societies": society_count,
         "variables": variable_count,
         "values": value_count,
+        "regions": regions,
+        "first_variable": FIRST_VARIABLE,
     }
 
-    output_file = OUTPUT_DIR / "meta.json"
-    write_json(output_file, meta)
+    path = OUTPUT_DIR / "meta.json"
+    write_json(path, meta)
 
-    print(f"Exported metadata → {output_file}")
+    print(f"Exported metadata → {path}")
 
 
 def main():
-    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-
     with connect() as conn:
         export_societies(conn)
         export_variables(conn)
