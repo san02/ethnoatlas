@@ -2,11 +2,12 @@ import './App.css'
 import MapView from './Map'
 import societiesData from '../data/societies.json'
 import type { Society } from './types'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import SocietyPanel from './SocietyPanel'
 import VariableSelector from './VariableSelector'
 import { buildAnswerColors } from './answerColors'
 import variablesData from '../data/variables.json'
+
 
 const societies = societiesData as Society[]
 
@@ -25,15 +26,64 @@ function App() {
 
   const [selectedVariable, setSelectedVariable] =
     useState('')
+  
+  const [selectedRegion, setSelectedRegion] =
+    useState('')
+  
+  const [selectedAnswer, setSelectedAnswer] = useState('')
+
+  useEffect(() => {
+    setSelectedSociety(null)
+  }, [selectedRegion])
+
+  useEffect(() => {
+    setSelectedAnswer('')
+  }, [selectedVariable])
+
+  const regions = [
+    ...new Set(
+      societies
+        .map((society) => society.region)
+        .filter((region): region is string => region !== null)
+    ),
+  ].sort()
 
   const selectedVariableInfo = variables.find(
     (variable) => variable.id === selectedVariable
   )
 
+  const filteredSocieties = societies.filter((society) => {
+    const matchesRegion =
+      !selectedRegion ||
+      society.region === selectedRegion
+
+    const matchesAnswer =
+      !selectedAnswer ||
+      society.answers[selectedVariableInfo?.name ?? ''] ===
+        selectedAnswer
+
+    return matchesRegion && matchesAnswer
+  })
+
+
+
+  const availableAnswers = selectedVariableInfo
+  ? [
+      ...new Set(
+        societies
+          .map(
+            (society) =>
+              society.answers[selectedVariableInfo.name]
+          )
+          .filter(Boolean)
+      ),
+    ].sort()
+  : []
+
   const legendAnswers = selectedVariableInfo
     ? [
         ...new Set(
-          societies
+          filteredSocieties
             .map(
               (society) =>
                 society.answers[selectedVariableInfo.name]
@@ -46,7 +96,7 @@ function App() {
   const answerColors = buildAnswerColors(legendAnswers)
 
   const coverageCount = selectedVariableInfo
-    ? societies.filter(
+    ? filteredSocieties.filter(
         (society) =>
           society.answers[selectedVariableInfo.name]
       ).length
@@ -64,14 +114,59 @@ function App() {
           selectedVariable={selectedVariable}
           onSelectVariable={setSelectedVariable}
         />
+        <div className="region-selector">
+          <label htmlFor="region">
+            Region
+          </label>
+
+          <select
+            id="region"
+            value={selectedRegion}
+            onChange={(event) =>
+              setSelectedRegion(event.target.value)
+            }
+          >
+            <option value="">All regions</option>
+
+            {regions.map((region) => (
+              <option key={region} value={region}>
+                {region}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="answer-selector">
+          <label htmlFor="answer">
+            Answer
+          </label>
+
+          <select
+            id="answer"
+            value={selectedAnswer}
+            onChange={(event) =>
+              setSelectedAnswer(event.target.value)
+            }
+            disabled={!selectedVariableInfo}
+          >
+            <option value="">
+              All answers
+            </option>
+
+            {availableAnswers.map((answer) => (
+              <option key={answer} value={answer}>
+                {answer}
+              </option>
+            ))}
+          </select>
+        </div>
       </section>
 
       <main className="main">
         <section className="map">
           <MapView
-            societies={societies}
-            onSelectSociety={setSelectedSociety}
+            societies={filteredSocieties}
             selectedVariable={selectedVariable}
+            onSelectSociety={setSelectedSociety}
           />
 
           {selectedVariableInfo && (
@@ -100,8 +195,9 @@ function App() {
               </div>
 
               <p className="coverage">
-                {coverageCount} of {societies.length} societies
-                have data
+                {filteredSocieties.length} societies shown
+                {selectedVariableInfo &&
+                  ` · ${coverageCount} have data`}
               </p>
             </div>
           )}
