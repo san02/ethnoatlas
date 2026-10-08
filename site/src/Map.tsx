@@ -26,9 +26,11 @@ type MapProps = {
 type Variable = {
   id: string
   name: string
+  type: string
   answers: {
     id: string
     name: string
+    ord: number | null
   }[]
 }
 
@@ -95,11 +97,7 @@ function MapView({ societies, onSelectSociety, selectedVariable }: MapProps) {
     )
 
     const answerColors = variable
-    ? buildAnswerColors(
-        variable.answers
-            .map((answer) => answer.name)
-            .filter((answer) => answer !== 'Missing data')
-        )
+    ? buildAnswerColors(variable.answers, variable.type)
     : {}
 
     const features = societies

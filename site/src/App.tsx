@@ -14,9 +14,11 @@ const societies = societiesData as Society[]
 type Variable = {
   id: string
   name: string
+  type: string
   answers: {
     id: string
     name: string
+    ord: number | null
   }[]
 }
 
@@ -38,6 +40,33 @@ function App() {
 
   const [selectedAnswer, setSelectedAnswer] =
     useState(params.get('answer') ?? '')
+
+  useEffect(() => {
+    const params = new URLSearchParams()
+
+    if (selectedVariable) {
+      params.set('variable', selectedVariable)
+    }
+
+    if (selectedRegion) {
+      params.set('region', selectedRegion)
+    }
+
+    if (selectedAnswer) {
+      params.set('answer', selectedAnswer)
+    }
+
+    const query = params.toString()
+    const newUrl = query
+      ? `${window.location.pathname}?${query}`
+      : window.location.pathname
+
+    window.history.replaceState({}, '', newUrl)
+  }, [
+    selectedVariable,
+    selectedRegion,
+    selectedAnswer,
+  ])
 
   useEffect(() => {
     setSelectedSociety(null)
@@ -95,12 +124,22 @@ function App() {
     : []
 
   const legendAnswers = selectedVariableInfo
-    ? selectedVariableInfo.answers
+    ? [...selectedVariableInfo.answers]
+        .filter((answer) => answer.name !== 'Missing data')
+        .sort((a, b) => {
+          if (selectedVariableInfo.type === 'Ordinal') {
+            return (a.ord ?? 0) - (b.ord ?? 0)
+          }
+
+          return a.name.localeCompare(b.name)
+        })
         .map((answer) => answer.name)
-        .filter((answer) => answer !== 'Missing data')
     : []
 
-  const answerColors = buildAnswerColors(legendAnswers)
+  const answerColors = buildAnswerColors(
+    selectedVariableInfo?.answers ?? [],
+    selectedVariableInfo?.type ?? 'Categorical'
+  )
 
   const coverageCount = selectedVariableInfo
     ? filteredSocieties.filter((society) => {

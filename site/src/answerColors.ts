@@ -1,4 +1,4 @@
-const palette = [
+const categoricalPalette = [
   '#e63946',
   '#457b9d',
   '#2a9d8f',
@@ -13,12 +13,49 @@ const palette = [
   '#4361ee',
 ]
 
-export function buildAnswerColors(answers: string[]) {
-  const uniqueAnswers = [...new Set(answers)].sort()
+const ordinalPalette = [
+  '#deebf7',
+  '#9ecae1',
+  '#6baed6',
+  '#3182bd',
+  '#08519c',
+]
+
+type Answer = {
+  name: string
+  ord: number | null
+}
+
+export function buildAnswerColors(
+  answers: Answer[],
+  type: string
+) {
   const colors: Record<string, string> = {}
 
-  uniqueAnswers.forEach((answer, index) => {
-    colors[answer] = palette[index % palette.length]
+  const usableAnswers = answers.filter(
+    (answer) => answer.name !== 'Missing data'
+  )
+
+  if (type === 'Ordinal') {
+    const orderedAnswers = [...usableAnswers].sort(
+      (a, b) => (a.ord ?? 0) - (b.ord ?? 0)
+    )
+
+    orderedAnswers.forEach((answer, index) => {
+      colors[answer.name] =
+        ordinalPalette[index % ordinalPalette.length]
+    })
+
+    return colors
+  }
+
+  const sortedAnswers = [...usableAnswers].sort(
+    (a, b) => a.name.localeCompare(b.name)
+  )
+
+  sortedAnswers.forEach((answer, index) => {
+    colors[answer.name] =
+      categoricalPalette[index % categoricalPalette.length]
   })
 
   return colors

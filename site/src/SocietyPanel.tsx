@@ -1,4 +1,18 @@
+
 import type { Society } from './types'
+import variablesData from '../data/variables.json'
+
+type Variable = {
+  id: string
+  name: string
+  answers: {
+    id: string
+    name: string
+    ord: number | null
+  }[]
+}
+
+const variables = variablesData as Variable[]
 
 type SocietyPanelProps = {
   society: Society | null
@@ -29,18 +43,22 @@ function SocietyPanel({ society }: SocietyPanelProps) {
         </>
       )}
 
-      <p>Region: {society.region}</p>
-      <p>Year: {society.year}</p>
+      <p>Region: {society.region ?? 'Unknown'}</p>
+      <p>Year: {society.year ?? 'Unknown'}</p>
 
-      <h3>Answers</h3>
+      <h3>Recorded answers</h3>
       <ul>
-        {Object.entries(society.answers).map(
-          ([variable, answer]) => (
-            <li key={variable}>
-              <strong>{variable}:</strong> {answer}
+        {variables.map((variable) => {
+          const answer = society.answers[variable.name]
+
+          if (!answer) return null
+
+          return (
+            <li key={variable.id}>
+              <strong>{variable.name}:</strong> {answer}
             </li>
           )
-        )}
+        })}
       </ul>
     </section>
   )
