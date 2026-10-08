@@ -1,6 +1,7 @@
 export type Society = {
   id: string
   name: string
+  alternativeNames: string[]
   lat: number | null
   lon: number | null
   region: string | null

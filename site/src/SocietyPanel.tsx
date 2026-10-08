@@ -18,11 +18,21 @@ function SocietyPanel({ society }: SocietyPanelProps) {
     <section className="society-panel">
       <h2>{society.name}</h2>
 
+      {society.alternativeNames.length > 0 && (
+        <>
+          <h3>Other names</h3>
+          <ul>
+            {society.alternativeNames.map((name) => (
+              <li key={name}>{name}</li>
+            ))}
+          </ul>
+        </>
+      )}
+
       <p>Region: {society.region}</p>
       <p>Year: {society.year}</p>
 
       <h3>Answers</h3>
-
       <ul>
         {Object.entries(society.answers).map(
           ([variable, answer]) => (

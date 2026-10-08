@@ -26,6 +26,10 @@ type MapProps = {
 type Variable = {
   id: string
   name: string
+  answers: {
+    id: string
+    name: string
+  }[]
 }
 
 const variables = variablesData as Variable[]
@@ -48,7 +52,7 @@ function getSocietyStyle(
   answer: string | undefined,
   answerColors: Record<string, string>
 ) {
-  if (!answer) {
+  if (!answer || answer === 'Missing data') {
     return new Style({
       image: new CircleStyle({
         radius: 5,
@@ -90,13 +94,13 @@ function MapView({ societies, onSelectSociety, selectedVariable }: MapProps) {
         (variable) => variable.id === selectedVariable
     )
 
-    const answers = variable
-    ? societies
-        .map((society) => society.answers[variable.name])
-        .filter((answer): answer is string => Boolean(answer))
-    : []
-
-    const answerColors = buildAnswerColors(answers)
+    const answerColors = variable
+    ? buildAnswerColors(
+        variable.answers
+            .map((answer) => answer.name)
+            .filter((answer) => answer !== 'Missing data')
+        )
+    : {}
 
     const features = societies
     .filter(

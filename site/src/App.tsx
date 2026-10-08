@@ -14,6 +14,10 @@ const societies = societiesData as Society[]
 type Variable = {
   id: string
   name: string
+  answers: {
+    id: string
+    name: string
+  }[]
 }
 
 const variables = variablesData as Variable[]
@@ -21,16 +25,19 @@ const variables = variablesData as Variable[]
 
 function App() {
 
+  const params = new URLSearchParams(window.location.search)
+
   const [selectedSociety, setSelectedSociety] =
     useState<Society | null>(null)
 
   const [selectedVariable, setSelectedVariable] =
-    useState('')
-  
+    useState(params.get('variable') ?? '')
+
   const [selectedRegion, setSelectedRegion] =
-    useState('')
-  
-  const [selectedAnswer, setSelectedAnswer] = useState('')
+    useState(params.get('region') ?? '')
+
+  const [selectedAnswer, setSelectedAnswer] =
+    useState(params.get('answer') ?? '')
 
   useEffect(() => {
     setSelectedSociety(null)
@@ -57,10 +64,14 @@ function App() {
       !selectedRegion ||
       society.region === selectedRegion
 
-    const matchesAnswer =
-      !selectedAnswer ||
-      society.answers[selectedVariableInfo?.name ?? ''] ===
-        selectedAnswer
+  const societyAnswer =
+    society.answers[selectedVariableInfo?.name ?? '']
+
+  const matchesAnswer =
+    !selectedAnswer ||
+    (selectedAnswer === 'Missing data'
+      ? societyAnswer === 'Missing data'
+      : societyAnswer === selectedAnswer)
 
     return matchesRegion && matchesAnswer
   })
@@ -68,38 +79,36 @@ function App() {
 
 
   const availableAnswers = selectedVariableInfo
-  ? [
-      ...new Set(
-        societies
-          .map(
-            (society) =>
-              society.answers[selectedVariableInfo.name]
-          )
-          .filter(Boolean)
-      ),
-    ].sort()
-  : []
-
-  const legendAnswers = selectedVariableInfo
     ? [
         ...new Set(
-          filteredSocieties
+          societies
             .map(
               (society) =>
                 society.answers[selectedVariableInfo.name]
             )
-            .filter(Boolean)
+            .filter(
+              (answer): answer is string =>
+                Boolean(answer) && answer !== 'Missing data'
+            )
         ),
       ].sort()
+    : []
+
+  const legendAnswers = selectedVariableInfo
+    ? selectedVariableInfo.answers
+        .map((answer) => answer.name)
+        .filter((answer) => answer !== 'Missing data')
     : []
 
   const answerColors = buildAnswerColors(legendAnswers)
 
   const coverageCount = selectedVariableInfo
-    ? filteredSocieties.filter(
-        (society) =>
+    ? filteredSocieties.filter((society) => {
+        const answer =
           society.answers[selectedVariableInfo.name]
-      ).length
+
+        return Boolean(answer) && answer !== 'Missing data'
+      }).length
     : 0
   
 
@@ -157,6 +166,10 @@ function App() {
                 {answer}
               </option>
             ))}
+
+            <option value="Missing data">
+              Missing data
+            </option>
           </select>
         </div>
       </section>
@@ -191,7 +204,7 @@ function App() {
                   className="legend-dot missing"
                 />
 
-                <span>No data</span>
+                <span>Missing data</span>
               </div>
 
               <p className="coverage">

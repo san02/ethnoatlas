@@ -60,7 +60,6 @@ def write_json(path, data):
             separators=(",", ":"),
         )
 
-
 def export_societies(conn):
     societies = {}
 
@@ -74,6 +73,49 @@ def export_societies(conn):
                 s.longitude,
                 s.region,
                 s.year,
+                sn.name
+            FROM societies s
+            LEFT JOIN society_names sn
+                ON sn.society_id = s.id
+            WHERE s.dataset_id = %s
+            ORDER BY s.id, sn.id
+            """,
+            (DATASET_ID,),
+        )
+
+        for row in cur:
+            (
+                society_id,
+                name,
+                latitude,
+                longitude,
+                region,
+                year,
+                alternative_name,
+            ) = row
+
+            if society_id not in societies:
+                societies[society_id] = {
+                    "id": society_id,
+                    "name": name,
+                    "alternativeNames": [],
+                    "lat": latitude,
+                    "lon": longitude,
+                    "region": region,
+                    "year": year,
+                    "dataset": DATASET_CODE,
+                    "answers": {},
+                }
+
+            if alternative_name:
+                societies[society_id]["alternativeNames"].append(
+                    alternative_name
+                )
+
+        cur.execute(
+            """
+            SELECT
+                s.id,
                 v.id,
                 v.name,
                 c.name,
@@ -95,32 +137,14 @@ def export_societies(conn):
         for row in cur:
             (
                 society_id,
-                name,
-                latitude,
-                longitude,
-                region,
-                year,
                 variable_id,
                 variable_name,
                 code_name,
                 value,
             ) = row
 
-            if society_id not in societies:
-                societies[society_id] = {
-                    "id": society_id,
-                    "name": name,
-                    "lat": latitude,
-                    "lon": longitude,
-                    "region": region,
-                    "year": year,
-                    "dataset": DATASET_CODE,
-                    "answers": {},
-                }
-
             if variable_id is not None:
                 answer = code_name if code_name is not None else value
-
                 societies[society_id]["answers"][variable_name] = answer
 
     output = list(societies.values())
@@ -129,7 +153,6 @@ def export_societies(conn):
     write_json(path, output)
 
     print(f"Exported {len(output)} societies → {path}")
-
 
 def export_variables(conn):
     variables = []

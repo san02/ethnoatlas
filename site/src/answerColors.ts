@@ -15,7 +15,6 @@ const palette = [
 
 export function buildAnswerColors(answers: string[]) {
   const uniqueAnswers = [...new Set(answers)].sort()
-
   const colors: Record<string, string> = {}
 
   uniqueAnswers.forEach((answer, index) => {
