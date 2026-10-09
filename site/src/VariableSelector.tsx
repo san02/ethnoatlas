@@ -14,15 +14,17 @@ type VariableSelectorProps = {
 
 const variables = variablesData as Variable[]
 
+const categories = [
+  ...new Set(variables.map((variable) => variable.category)),
+]
+
 function VariableSelector({
   selectedVariable,
   onSelectVariable,
 }: VariableSelectorProps) {
   return (
     <div className="variable-selector">
-      <label htmlFor="variable">
-        Variable
-      </label>
+      <label htmlFor="variable">Variable</label>
 
       <select
         id="variable"
@@ -31,14 +33,23 @@ function VariableSelector({
           onSelectVariable(event.target.value)
         }
       >
-        <option value="">
-          Select a variable
-        </option>
+        <option value="">Select a variable</option>
 
-        {variables.map((variable) => (
-          <option key={variable.id} value={variable.id}>
-            {variable.name}
-          </option>
+        {categories.map((category) => (
+          <optgroup key={category} label={category}>
+            {variables
+              .filter(
+                (variable) => variable.category === category
+              )
+              .map((variable) => (
+                <option
+                  key={variable.id}
+                  value={variable.id}
+                >
+                  {variable.name}
+                </option>
+              ))}
+          </optgroup>
         ))}
       </select>
     </div>

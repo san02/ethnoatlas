@@ -1,75 +1,254 @@
 .app {
   min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  color: #222;
+  background: #fff;
+  font-family: Arial, Helvetica, sans-serif;
 }
 
 .header {
-  padding: 1rem;
-  border-bottom: 1px solid #ccc;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #ddd;
+  background: #fff;
 }
 
 .header h1 {
   margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 1rem;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #ddd;
+  background: #fafafa;
+}
+
+.variable-selector,
+.region-selector,
+.answer-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  min-width: 180px;
+}
+
+.controls label {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.controls select {
+  width: 100%;
+  min-height: 40px;
+  padding: 0.5rem 2rem 0.5rem 0.75rem;
+  border: 1px solid #bbb;
+  border-radius: 6px;
+  background: #fff;
+  color: #222;
+  font: inherit;
+}
+
+.controls select:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
+.controls select:disabled {
+  cursor: not-allowed;
+  background: #eee;
+  color: #777;
 }
 
 .main {
   display: flex;
-  height: calc(100vh - 70px);
+  flex: 1;
+  min-height: 600px;
+  min-width: 0;
 }
 
 .map {
+  position: relative;
+  display: flex;
   flex: 1;
+  flex-direction: column;
   min-width: 0;
   min-height: 0;
-  display: flex;
-  flex-direction: column;
   background: #f2f2f2;
 }
 
 .map-container {
   width: 100%;
   flex: 1;
-  min-height: 0;
+  min-height: 350px;
 }
 
 .society-panel {
-  width: 320px;
-  padding: 1rem;
-  border-left: 1px solid #ccc;
+  box-sizing: border-box;
+  width: 340px;
+  flex: 0 0 340px;
+  padding: 1.25rem;
+  border-left: 1px solid #ddd;
+  overflow-y: auto;
+  background: #fff;
+}
+
+.society-panel h2 {
+  margin: 0 0 1.25rem;
+  font-size: 1.35rem;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.society-panel h3 {
+  margin: 1.25rem 0 0.75rem;
+  font-size: 1rem;
+}
+
+.society-panel p {
+  line-height: 1.5;
+}
+
+.society-panel ul {
+  padding-left: 1.25rem;
+  line-height: 1.5;
+}
+
+.society-details {
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid #eee;
+}
+
+.answer-list {
+  margin: 0;
+}
+
+.answer-entry {
+  padding: 0.75rem 0;
+  border-bottom: 1px solid #eee;
+}
+
+.answer-entry dt {
+  margin-bottom: 0.35rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.answer-entry dd {
+  margin: 0;
+  font-size: 0.925rem;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
 }
 
 .legend {
-  padding: 16px;
-  background: #ffffff;
+  flex: 0 0 auto;
+  max-height: 220px;
+  overflow-y: auto;
+  padding: 1rem 1.25rem;
   border-top: 1px solid #ddd;
+  background: #fff;
 }
 
 .legend h3 {
-  margin: 0 0 12px;
-  font-size: 16px;
+  margin: 0 0 0.75rem;
+  font-size: 1rem;
+  line-height: 1.4;
 }
 
 .legend-item {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 6px;
-  font-size: 14px;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin-bottom: 0.45rem;
+  font-size: 0.875rem;
+  line-height: 1.4;
 }
 
 .legend-dot {
+  box-sizing: border-box;
   width: 12px;
   height: 12px;
-  border-radius: 50%;
-  display: inline-block;
+  flex: 0 0 12px;
+  margin-top: 0.15rem;
   border: 1px solid #555;
+  border-radius: 50%;
 }
 
 .legend-dot.missing {
-  background: #cccccc;
+  background: #ccc;
 }
 
 .coverage {
-  margin: 12px 0 0;
-  font-size: 13px;
+  margin: 0.75rem 0 0;
   color: #666;
+  font-size: 0.8125rem;
+}
+
+@media (max-width: 900px) {
+  .main {
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .map {
+    flex: none;
+    min-height: 600px;
+  }
+
+  .map-container {
+    flex: 1;
+    min-height: 400px;
+  }
+
+  .society-panel {
+    width: 100%;
+    flex: none;
+    max-height: 500px;
+    border-top: 1px solid #ddd;
+    border-left: none;
+  }
+}
+
+@media (max-width: 600px) {
+  .header {
+    padding: 1rem;
+  }
+
+  .controls {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 0.85rem;
+    padding: 1rem;
+  }
+
+  .variable-selector,
+  .region-selector,
+  .answer-selector {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .map {
+    min-height: 550px;
+  }
+
+  .map-container {
+    min-height: 350px;
+  }
+
+  .legend {
+    max-height: 200px;
+    padding: 0.85rem 1rem;
+  }
+
+  .society-panel {
+    padding: 1rem;
+  }
 }

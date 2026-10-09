@@ -1,3 +1,8 @@
+type Answer = {
+  name: string
+  ord: number | null
+}
+
 const categoricalPalette = [
   '#e63946',
   '#457b9d',
@@ -21,29 +26,29 @@ const ordinalPalette = [
   '#08519c',
 ]
 
-type Answer = {
-  name: string
-  ord: number | null
-}
-
 export function buildAnswerColors(
   answers: Answer[],
   type: string
-) {
+): Record<string, string> {
   const colors: Record<string, string> = {}
 
   const usableAnswers = answers.filter(
     (answer) => answer.name !== 'Missing data'
   )
 
-  if (type === 'Ordinal') {
+  if (type.toLowerCase() === 'ordinal') {
     const orderedAnswers = [...usableAnswers].sort(
       (a, b) => (a.ord ?? 0) - (b.ord ?? 0)
     )
 
     orderedAnswers.forEach((answer, index) => {
       colors[answer.name] =
-        ordinalPalette[index % ordinalPalette.length]
+        ordinalPalette[
+          Math.round(
+            (index / Math.max(orderedAnswers.length - 1, 1)) *
+              (ordinalPalette.length - 1)
+          )
+        ]
     })
 
     return colors
